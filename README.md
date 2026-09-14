@@ -165,7 +165,7 @@ Route::get('/editor', [ArticleController::class, 'create'])->name('articles.crea
 
 </details>
 
-
+##▪️記事メイン（ステップ２）のバトンリレー
 <details>
 <summary>②Create 画面で項目(タイトル, サブタイトル, 記事内容, タグ)を入力して「Publish Article」を押下したときに
 DB に保存されて HOME 画面の3つ目の記事として表示される。(以降, Create するたびに4つ目、5つ目として表示される)</summary>
@@ -186,3 +186,64 @@ DB に保存されて HOME 画面の3つ目の記事として表示される。(
 8. **一覧描画（home.blade.php）**`index()` から記事の束を受け取った `home.blade.php` が、`@foreach` でループ処理を行い、増えた3件目（4件目、5件目…）の記事カードを順番に画面に並べて表示します。
 
 </details>
+
+<details>
+<summary>③Home 画面の記事をクリックすると、その記事の Article 画面に遷移する</summary>
+
+**記事のタイトル（またはカード）をクリックしてから詳細画面が表示されるまでのバトンリレー**
+
+1. **クリック（ブラウザ）**
+ユーザーが HOME 画面で読みたい記事（例: IDが `3` の記事）のリンクをクリックすると、`<a href="/articles/3">` が発動します。
+2. **受け取り（web.php）**`Route::get('/articles/{id}', ...)`（または `Route::get('/articles/{article}', ...)`）が「`/articles/3` への閲覧リクエストが来た！」と検知し、`ArticleController` の `show()` メソッドに ID `3` を持たせてバトンを渡します。
+3. **該当データの取得（show）**`show()` メソッドが受け取った ID `3` を使って、`Article::findOrFail(3)`（またはルートモデルバインディング）を実行し、**データベースから「3番目の記事データだけ」をピンポイントで検索・取得**します。
+4. **詳細画面の表示（article.blade.php）**`show()` メソッドが取得した 1 件分の記事データを `article.blade.php`（詳細画面用の Blade ファイル）に送ります。画面側では `$article->title` や `$article->body` を使って、該当記事の全内容をくっきり表示します。
+
+</details>
+
+<details>
+<summary>④Article 画面で「Edit Article」ボタンを押すと、Edit 画面に遷移する。また、各項目には記事作成時に保存されている情報を DB から取得し表示されている状態にする</summary>
+
+**「Edit Article」ボタンを押してから編集画面が開くまでのバトンリレー**
+
+1. **ボタン押下（ブラウザ）**
+ユーザーが Article 画面（詳細画面）で「Edit Article」ボタンをクリックすると、`<a href="/articles/3/edit">` が発動します。
+2. **受け取り（web.php）**`Route::get('/articles/{id}/edit', ...)` が「`/articles/3/edit` への編集画面リクエストだ！」と検知し、`ArticleController` の `edit()` メソッドに ID `3` を持たせてバトンを渡します。
+3. **編集対象の取得（edit）**`edit()` メソッドが受け取った ID `3` を使い、`Article::findOrFail(3)` を実行して**データベースから編集したい記事データを1件ピンポイントで取得**します。
+4. **フォームへの値のセット＆画面表示（editor.blade.php / edit.blade.php）**`edit()` メソッドが取得したデータを編集用ビューに渡します。HTML側の `<input value="{{ $article->title }}">` や `<textarea>{{ $article->body }}</textarea>` に既存データがあらかじめ埋め込まれた状態で、編集画面が表示されます。
+
+</details>
+
+
+<details>
+<summary>⑤Edit 画面で項目を編集して「Publish Article」を押したときに、DB に保存され、HOME 画面の記事も更新される</summary>
+
+**「Publish Article」ボタンを押して更新保存され、HOME 画面で変更が反映されるまでのバトンリレー**
+
+1. **更新送信（ブラウザ ➔ サーバー）**
+ユーザーが編集画面で内容を書き換えて「Publish Article」を押すと、`<form action="/articles/3" method="POST">` によって、入力データ・暗号キー（`@csrf`）・そして更新命令を示す `{@method('PUT')}`（または `@method('PATCH')`）が送信されます。
+2. **受け取り（web.php）**`Route::put('/articles/{id}', ...)` が「`/articles/3` への更新（PUT）リクエストが来た！」と検知し、`ArticleController` の `update()` メソッドに ID `3` と入力データを渡します。
+3. **該当データの取得と書き換え（update）**`update()` メソッドが `Article::findOrFail(3)` で対象のデータを呼び出し、`$article->update($validated)` を実行して**データベース内の該当レコードを新しい内容に上書き保存**します。
+4. **転送指示（update: リダイレクト）**
+保存完了後、`return redirect('/');`（または詳細画面への `return redirect('/articles/3');`）が実行され、ブラウザに「処理が終わったからトップページへ行け！」と命じます。
+5. **再取得＆更新後の表示（index ➔ home.blade.php）**
+ブラウザが HOME 画面（`/`）を開くと、`ArticleController` の `index()` が呼ばれて `Article::all()` を実行し、**今更新された最新のデータを含む全記事**を取得して `home.blade.php` を描画・表示します。
+
+</details>
+
+
+<details>
+<summary>⑥「Delete Article」ボタンを押したときに DB から記事が削除され、HOME 画面からも削除される</summary>
+
+**「Delete Article」ボタンを押して削除され、HOME 画面から消えるまでのバトンリレー**
+
+1. **削除送信（ブラウザ ➔ サーバー）**
+ユーザーが Article 画面（詳細画面）で「Delete Article」を押すと、`<form action="/articles/3" method="POST">` によって、暗号キー（`@csrf`）と削除命令を示す `{@method('DELETE')}` が送信されます。
+2. **受け取り（web.php）**`Route::delete('/articles/{id}', ...)` が「`/articles/3` への削除（DELETE）リクエストが来た！」と検知し、`ArticleController` の `destroy()` メソッドに ID `3` を持たせてバトンを渡します。
+3. **該当データの削除（destroy）**`destroy()` メソッドが `Article::findOrFail(3)` で対象のデータを呼び出し、`$article->delete()` を実行して**データベースから該当レコードを消去**します。
+4. **転送指示（destroy: リダイレクト）**
+削除完了後、`return redirect('/');` が実行され、ブラウザに対して「削除が終わったからトップページ（`/`）へ移動して！」と命令を送ります。
+5. **再取得＆画面描画（index ➔ home.blade.php）**
+ブラウザが HOME 画面を開くと、`ArticleController` の `index()` が呼ばれて `Article::all()` を実行します。**削除された記事を除いたデータのみ**が取得され、`home.blade.php` で消去後の記事一覧が表示されます。
+
+</details>
+
