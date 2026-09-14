@@ -92,7 +92,12 @@ Markdownの書き方もそのまま使えます！
 
 </details>
 
-▪️それぞれの機能に対してのアプローチ
+
+ーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーー
+
+
+## それぞれの機能に対してのアプローチ
+### ▪️記事メイン（ステップ２）のバトンリレー
 <details>
 <summary>①Home 画面の記事が表示されている下に「Create」ボタンを配置する。ボタンを押下したときに Create 画面に遷移する</summary>
 
@@ -165,7 +170,7 @@ Route::get('/editor', [ArticleController::class, 'create'])->name('articles.crea
 
 </details>
 
-##▪️記事メイン（ステップ２）のバトンリレー
+
 <details>
 <summary>②Create 画面で項目(タイトル, サブタイトル, 記事内容, タグ)を入力して「Publish Article」を押下したときに
 DB に保存されて HOME 画面の3つ目の記事として表示される。(以降, Create するたびに4つ目、5つ目として表示される)</summary>
